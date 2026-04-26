@@ -51,7 +51,7 @@ Once those four facts are in hand, your operating system can build the actual pa
 
 ## Encapsulation, layer by layer
 
-### Layer 7: Application - your request, in the words of the protocol
+### Layer 7: Application. Your request, in the words of the protocol
 
 At the top of the stack, your `curl` command produces an HTTP request. Stripped to its essence, it looks something like this:
 
@@ -62,11 +62,11 @@ User-Agent: curl/8.4.0
 Accept: */*
 ```
 
-That's it. A few lines of plain text. HTTP is just a text-based protocol that asks for a resource by name. Your browser, your phone, every IoT device in your house - they all speak some flavor of this kind of application-layer protocol.
+That's it. A few lines of plain text. HTTP is just a text-based protocol that asks for a resource by name. Your browser, your phone, every IoT device in your house, they all speak some flavor of this kind of application-layer protocol.
 
-**Where attackers live here:** Almost every web vulnerability you've ever heard of. SQL injection, cross-site scripting, request smuggling, broken authentication. Applications are where developers make assumptions about input, state, and trust - and assumptions are what attackers exploit. We'll touch on application-layer attacks throughout the course but they're not the main focus - other courses cover web app security in depth.
+**Where attackers live here:** Almost every web vulnerability you've ever heard of. SQL injection, cross-site scripting, request smuggling, broken authentication. Applications are where developers make assumptions about input, state, and trust; assumptions are what attackers exploit. We'll touch on application-layer attacks throughout the course but they're not the main focus; other courses cover web app security in depth.
 
-### Layer 4: Transport - reliability and ports
+### Layer 4: Transport. Reliability and ports
 
 Your HTTP request is too important to just throw at the network and hope for the best. So your operating system hands it to TCP, which wraps it in a TCP header.
 
@@ -78,11 +78,11 @@ The TCP header is small but it does a lot of work. It contains:
 
 TCP's job is reliable, ordered delivery. Before any data flows, TCP performs the famous three-way handshake (SYN, SYN-ACK, ACK) to establish a connection. After that it tracks every byte, retransmits anything lost, and reorders anything that arrives out of sequence.
 
-UDP is the simpler alternative. No handshake, no reliability, no ordering. UDP's value is its simplicity - it's the right choice for DNS, video calls, and anything where retransmitting a stale packet is worse than dropping it.
+UDP is the simpler alternative. No handshake, no reliability, no ordering. UDP's value is its simplicity: it's the right choice for DNS, video calls, and anything where retransmitting a stale packet is worse than dropping it.
 
 **Where attackers live here:** Port scanning is reconnaissance at this layer. SYN floods exhaust a server's connection table by starting handshakes that never complete. RST injection lets an attacker tear down a TCP connection by forging a single packet. UDP amplification attacks abuse the connectionless nature of UDP to turn small queries into massive responses pointed at a victim. Module 4 is the deep dive.
 
-### Layer 3: Network - addresses and routing
+### Layer 3: Network. Addresses and routing
 
 The TCP segment now gets wrapped in an IP header. IP is the layer that gets your packet across networks. The header contains:
 - The source IP (your laptop's address on the coffee shop wifi)
@@ -90,11 +90,11 @@ The TCP segment now gets wrapped in an IP header. IP is the layer that gets your
 - A TTL, so packets that get lost don't loop forever
 - A protocol number that says "the thing inside me is TCP"
 
-This is where routing happens. Every router on the path looks at the destination IP, consults a routing table, and forwards the packet toward the next router. No router on the public internet knows the full path - each one only knows the next hop. That's not a flaw, it's the design that lets the internet scale.
+This is where routing happens. Every router on the path looks at the destination IP, consults a routing table, and forwards the packet toward the next router. No router on the public internet knows the full path; each one only knows the next hop. That's not a flaw, it's the design that lets the internet scale.
 
-**Where attackers live here:** IP spoofing - lying about your source address. ICMP tunneling - smuggling data inside ping packets, which a lot of firewalls let through without inspection. Fragmentation attacks - splitting packets in ways that confuse intrusion detection systems. BGP hijacking, where an attacker convinces internet routers that they own a chunk of address space they don't actually own. Module 3 is the deep dive.
+**Where attackers live here:** IP spoofing, lying about your source address. ICMP tunneling, smuggling data inside ping packets, which a lot of firewalls let through without inspection. Fragmentation attacks, splitting packets in ways that confuse intrusion detection systems. BGP hijacking, where an attacker convinces internet routers that they own a chunk of address space they don't actually own. Module 3 is the deep dive.
 
-### Layer 2: Data Link - the local network
+### Layer 2: Data Link. The local network
 
 The IP packet now needs to actually move across a piece of wire (or wifi). For that, it gets wrapped one more time, in an Ethernet frame. The frame header contains:
 - A source MAC address (your laptop's network card, burned in at the factory)
@@ -103,9 +103,9 @@ The IP packet now needs to actually move across a piece of wire (or wifi). For t
 
 MAC addresses are local. They only matter on the current network segment. As your packet hops from router to router across the internet, the IP addresses stay the same but the MAC addresses change at every hop. This is the part of networking that confuses people the most when they first learn it, and the part that opens the door to the Layer 2 attacks that follow.
 
-**Where attackers live here:** This is where it gets fun. ARP poisoning lets an attacker on the same network as you convince your laptop that the attacker's MAC address is the gateway. Once that's true, all your traffic flows through them before reaching the real router. MAC flooding overflows a switch's address table and forces it to broadcast every frame to every port - turning a switched network back into a hub for the attacker's benefit. VLAN hopping escapes a segmentation boundary that the network was relying on for security. Module 2 is the deep dive.
+**Where attackers live here:** This is where it gets fun. ARP poisoning lets an attacker on the same network as you convince your laptop that the attacker's MAC address is the gateway. Once that's true, all your traffic flows through them before reaching the real router. MAC flooding overflows a switch's address table and forces it to broadcast every frame to every port, turning a switched network back into a hub for the attacker's benefit. VLAN hopping escapes a segmentation boundary that the network was relying on for security. Module 2 is the deep dive.
 
-### Layer 1: Physical - bits on the wire
+### Layer 1: Physical. Bits on the wire
 
 Finally, the frame becomes a sequence of electrical pulses on copper, light pulses on fiber, or radio waves in the air. Most security training skips this layer. Attackers don't.
 
@@ -121,7 +121,7 @@ Stack all of those headers together and what actually goes on the wire looks lik
 [ Ethernet header [ IP header [ TCP header [ HTTP request ] ] ] ]
 ```
 
-Each layer is wrapped by the layer below it. Each layer is *opaque* to the layer below - the IP layer doesn't care what's inside the TCP segment, and the Ethernet layer doesn't care what's inside the IP packet. They just carry the payload they were handed.
+Each layer is wrapped by the layer below it. Each layer is *opaque* to the layer below: the IP layer doesn't care what's inside the TCP segment, and the Ethernet layer doesn't care what's inside the IP packet. They just carry the payload they were handed.
 
 On the other end, the server reverses the process. The NIC receives the bits. The driver hands the frame up to the IP stack, which strips the Ethernet header. The IP stack strips the IP header and hands the segment to TCP. TCP reassembles, strips its header, and hands the bytes to the web server process listening on port 443. The web server reads the HTTP request and generates a response. Then the whole thing happens in reverse, traveling back to your laptop.
 
@@ -129,7 +129,7 @@ That's the 200 milliseconds.
 
 ---
 
-## OSI vs TCP/IP - why we still teach both
+## OSI vs TCP/IP: why we still teach both
 
 The OSI model has seven layers. The TCP/IP model has four (or five, depending on how you count). The OSI model is what gets drawn on whiteboards. TCP/IP is what actually got built and ships in every operating system.
 
@@ -148,17 +148,17 @@ A historical note worth knowing: TLS doesn't fit neatly into either model. It si
 
 Here's how the rest of this course slots onto the path of a packet:
 
-- **Module 2** - Layer 2 deep dive. Frames, MACs, switches, ARP, VLANs, and the attacks that live there.
-- **Module 3** - Layer 3 deep dive. IP, routing, ICMP, and the attacks that live there.
-- **Module 4** - Layer 4 deep dive. TCP, UDP, scanning, and the attacks that live there.
-- **Module 5** - The boring infrastructure (DNS, DHCP, NAT) and how attackers abuse all of it.
-- **Module 6** - Wireshark fluency. The skill that ties the whole stack together.
-- **Module 7** - Routing and switching at scale. Firewalls, segmentation, blast radius.
-- **Module 8** - Wireless. The Layer 1 and Layer 2 problems that look different on radio.
-- **Module 9** - Pivot to endpoints. Active Directory, Windows networking, the enterprise reality.
-- **Module 10** - AD attack paths. Kerberoasting, BloodHound, lateral movement.
-- **Module 11** - Detection. What the defender sees while all of that is happening.
-- **Module 12** - Capstone. Put it all together against a target environment.
+- **Module 2:** Layer 2 deep dive. Frames, MACs, switches, ARP, VLANs, and the attacks that live there.
+- **Module 3:** Layer 3 deep dive. IP, routing, ICMP, and the attacks that live there.
+- **Module 4:** Layer 4 deep dive. TCP, UDP, scanning, and the attacks that live there.
+- **Module 5:** The boring infrastructure (DNS, DHCP, NAT) and how attackers abuse all of it.
+- **Module 6:** Wireshark fluency. The skill that ties the whole stack together.
+- **Module 7:** Routing and switching at scale. Firewalls, segmentation, blast radius.
+- **Module 8:** Wireless. The Layer 1 and Layer 2 problems that look different on radio.
+- **Module 9:** Pivot to endpoints. Active Directory, Windows networking, the enterprise reality.
+- **Module 10:** AD attack paths. Kerberoasting, BloodHound, lateral movement.
+- **Module 11:** Detection. What the defender sees while all of that is happening.
+- **Module 12:** Capstone. Put it all together against a target environment.
 
 Every module of this course connects back to a layer of the path you just walked.
 
@@ -168,7 +168,7 @@ Every module of this course connects back to a layer of the path you just walked
 
 Spin up Wireshark. Run `curl https://example.com`. Capture the traffic. Look at one of the captured frames and expand every layer in the Wireshark pane. You will see the same headers I described above, in the same order, on a real packet you generated yourself.
 
-The next module dives into Layer 2 - frames, MAC addresses, switches, and the first attack we'll actually run in a lab. If you want to be ready, install Wireshark and Containerlab on your machine before the next article drops.
+The next module dives into Layer 2: frames, MAC addresses, switches, and the first attack we'll actually run in a lab. If you want to be ready, install Wireshark and Containerlab on your machine before the next article drops.
 
 ---
 
