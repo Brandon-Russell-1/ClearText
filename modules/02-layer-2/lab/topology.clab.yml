@@ -58,14 +58,17 @@ topology:
         - ip link set eth1 up
         - ip route add default via 10.0.0.1
 
+    # Attacker uses Debian instead of netshoot because Alpine dropped the
+    # dsniff package (arpspoof) from its repos after 3.17. Debian still
+    # maintains it. The apt-get install takes 15-30 seconds at deploy time.
     attacker:
       kind: linux
-      image: nicolaka/netshoot:latest
+      image: debian:bookworm-slim
       exec:
+        - sh -c "DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq dsniff tcpdump iproute2 iputils-ping procps"
         - ip addr add 10.0.0.99/24 dev eth1
         - ip link set eth1 up
         - ip route add default via 10.0.0.1
-        - apk add --no-cache dsniff
 
   links:
     - endpoints: ["switch:eth1", "gateway:eth1"]

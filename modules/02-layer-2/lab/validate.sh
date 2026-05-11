@@ -107,15 +107,25 @@ cmd_attack() {
     dexec -d "$ATTACKER" sh -c "arpspoof -i eth1 -t $VICTIM_IP $GATEWAY_IP >/dev/null 2>&1"
     dexec -d "$ATTACKER" sh -c "arpspoof -i eth1 -t $GATEWAY_IP $VICTIM_IP >/dev/null 2>&1"
 
-    info "Waiting 5 seconds for ARP cache to be poisoned..."
-    sleep 5
+    info "Waiting 8 seconds for ARP cache to be poisoned..."
+    sleep 8
 
-    # Force the victim to refresh its ARP entry by sending traffic
-    dexec "$VICTIM" ping -c 1 -W 1 "$GATEWAY_IP" >/dev/null 2>&1 || true
-    sleep 1
-
-    local after
-    after=$(mac_for_ip "$VICTIM" "$GATEWAY_IP")
+    # Sample the victim's ARP cache repeatedly. arpspoof sends only every
+    # 2 seconds, so the cache can briefly revert between sends if the
+    # gateway happens to ARP-probe the victim. Pass if we ever see the
+    # attacker's MAC inside the sampling window.
+    info "Sampling victim's ARP cache for poisoning..."
+    local after="" sample
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        dexec "$VICTIM" ping -c 1 -W 1 "$GATEWAY_IP" >/dev/null 2>&1 || true
+        sample=$(mac_for_ip "$VICTIM" "$GATEWAY_IP")
+        if [ "$sample" = "$attacker_mac" ]; then
+            after="$sample"
+            break
+        fi
+        after="$sample"
+        sleep 0.3
+    done
     info "Victim's cached gateway MAC (after attack):  $after"
 
     info "Confirming victim traffic now flows through the attacker..."
@@ -185,16 +195,26 @@ EOF
     dexec -d "$ATTACKER" sh -c "arpspoof -i eth1 -t $VICTIM_IP $GATEWAY_IP >/dev/null 2>&1"
     dexec -d "$ATTACKER" sh -c "arpspoof -i eth1 -t $GATEWAY_IP $VICTIM_IP >/dev/null 2>&1"
 
-    info "Waiting 5 seconds..."
-    sleep 5
+    info "Waiting 8 seconds..."
+    sleep 8
 
-    # Force the victim to use its cache
-    dexec "$VICTIM" ping -c 1 -W 1 "$GATEWAY_IP" >/dev/null 2>&1 || true
-    sleep 1
-
-    local real_gw_mac after
+    # Same sampling pattern as the attack step, so the defense check is
+    # symmetrical with the attack check. The defense passes if the cache
+    # NEVER becomes the attacker's MAC during the window.
+    info "Sampling victim's ARP cache (defense should keep it pinned to real gateway)..."
+    local real_gw_mac after="" sample seen_attacker=0
     real_gw_mac=$(own_mac "$GATEWAY")
-    after=$(mac_for_ip "$VICTIM" "$GATEWAY_IP")
+    local attacker_mac
+    attacker_mac=$(own_mac "$ATTACKER")
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        dexec "$VICTIM" ping -c 1 -W 1 "$GATEWAY_IP" >/dev/null 2>&1 || true
+        sample=$(mac_for_ip "$VICTIM" "$GATEWAY_IP")
+        if [ "$sample" = "$attacker_mac" ]; then
+            seen_attacker=1
+        fi
+        after="$sample"
+        sleep 0.3
+    done
     info "Real gateway MAC:                          $real_gw_mac"
     info "Victim's cached gateway MAC (after attack): $after"
 
@@ -211,7 +231,7 @@ EOF
     dexec "$ATTACKER" pkill -f arpspoof 2>/dev/null || true
 
     echo
-    if [ "$after" = "$real_gw_mac" ] && [ "$saw_traffic" -eq 0 ]; then
+    if [ "$seen_attacker" -eq 0 ] && [ "$saw_traffic" -eq 0 ]; then
         pass "Port-security and DAI blocked the attack. Switch dropped the spoofed frames."
         echo
         echo "    What just happened:"
@@ -228,8 +248,9 @@ EOF
         return 0
     else
         fail "Defense did not hold."
-        echo "    Expected victim's gateway MAC = $real_gw_mac, got $after"
-        echo "    Captured victim->gateway packets on attacker: $saw_traffic"
+        echo "    Real gateway MAC = $real_gw_mac, victim's cache last seen = $after"
+        echo "    Cache ever became attacker's MAC during window: $seen_attacker (want 0)"
+        echo "    Captured victim->gateway packets on attacker: $saw_traffic (want 0)"
         return 1
     fi
 }

@@ -257,7 +257,7 @@ Topology is gone. No leftover state on your host.
 | `validate.sh check` reports the victim can't ping the gateway | The bridge probably didn't come up. Check `docker logs clab-cleartext-l2-switch` and `docker exec clab-cleartext-l2-switch ip link show br0`. |
 | `validate.sh attack` reports the attack didn't succeed | Likely the victim's ARP cache wasn't populated before the attack. Re-run; the script forces a ping first but timing on slow hosts can race. |
 | `validate.sh defend` reports the defense didn't hold | Confirm `ebtables -L FORWARD` on the switch shows the rules. If `ebtables` is not available, your kernel may not have bridge netfilter compiled in (rare on WSL2, but possible on minimal hosts). |
-| `apk add dsniff` fails on attacker | The container couldn't reach Alpine's package mirror. Confirm `docker exec clab-cleartext-l2-attacker ping 8.8.8.8` works. |
+| `apt-get install` fails on attacker | The container couldn't reach Debian's package mirror. Confirm `docker exec clab-cleartext-l2-attacker ping 8.8.8.8` works. (The attacker uses `debian:bookworm-slim` because Alpine dropped `dsniff` after 3.17.) |
 
 If the lab gets into a weird state, the cleanest reset is:
 
