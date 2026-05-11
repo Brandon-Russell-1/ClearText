@@ -1,0 +1,74 @@
+name: cleartext-l2
+
+# Cleartext Module 2 lab topology.
+#
+# Five containers on one switched broadcast domain (10.0.0.0/24):
+#
+#                       +-----------+
+#                       |  gateway  |  10.0.0.1
+#                       +-----+-----+
+#                             |
+#                       +-----+-----+
+#                       |  switch   |  (Linux bridge inside a container)
+#                       +-+---+---+-+
+#                         |   |   |
+#                 +-------+   |   +-------+
+#                 |           |           |
+#            +----+----+ +----+----+ +----+----+
+#            |  victim | |bystander| |attacker |
+#            |10.0.0.10| |10.0.0.11| |10.0.0.99|
+#            +---------+ +---------+ +---------+
+#
+# All nodes use nicolaka/netshoot, which ships with ip, tcpdump, ebtables,
+# and the Alpine package manager (we install dsniff on the attacker for
+# arpspoof at deploy time).
+
+topology:
+  nodes:
+    switch:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      binds:
+        - configs:/configs
+      exec:
+        - sh /configs/switch-init.sh
+
+    gateway:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      exec:
+        - ip addr add 10.0.0.1/24 dev eth1
+        - ip link set eth1 up
+        - sysctl -w net.ipv4.ip_forward=1
+
+    victim:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      exec:
+        - ip addr add 10.0.0.10/24 dev eth1
+        - ip link set eth1 up
+        - ip route add default via 10.0.0.1
+        - sysctl -w net.ipv4.conf.all.arp_accept=1
+
+    bystander:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      exec:
+        - ip addr add 10.0.0.11/24 dev eth1
+        - ip link set eth1 up
+        - ip route add default via 10.0.0.1
+
+    attacker:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      exec:
+        - ip addr add 10.0.0.99/24 dev eth1
+        - ip link set eth1 up
+        - ip route add default via 10.0.0.1
+        - apk add --no-cache dsniff
+
+  links:
+    - endpoints: ["switch:eth1", "gateway:eth1"]
+    - endpoints: ["switch:eth2", "victim:eth1"]
+    - endpoints: ["switch:eth3", "bystander:eth1"]
+    - endpoints: ["switch:eth4", "attacker:eth1"]
